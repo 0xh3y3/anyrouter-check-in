@@ -94,7 +94,7 @@ class AppConfig:
 				user_info_path='/api/user/self',
 				api_user_key='new-api-user',
 				bypass_method='waf_cookies',
-				waf_cookie_names=['acw_tc'],  # agentrouter.org 只设置 acw_tc
+				waf_cookie_names=['acw_tc', 'acw_sc__v2'],  # 非本地 IP 触发完整 JS 挑战，需要 acw_sc__v2
 			),
 			'freeapi': ProviderConfig(
 				name='freeapi',
