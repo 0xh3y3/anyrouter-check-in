@@ -7,7 +7,7 @@
 [![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
 [![License](https://img.shields.io/github/license/millylee/anyrouter-check-in)](LICENSE)
 
-多平台多账号自动签到，理论上支持所有 NewAPI、OneAPI 平台，目前内置支持 Any Router 与 Agent Router，其它可根据文档进行摸索配置。
+多平台多账号自动签到，理论上支持所有 NewAPI、OneAPI 平台，目前内置支持 Any Router、Agent Router 与 FreeAPI (freeapi.dgbmc.top)，其它可根据文档进行摸索配置。
 
 推荐搭配使用[Auo](https://github.com/millylee/auo)，支持任意 Claude Code Token 切换的工具。
 
@@ -160,7 +160,7 @@
 
 ### 多服务商配置
 
-如果你需要同时使用多个服务商（如 anyrouter 和 agentrouter）：
+如果你需要同时使用多个服务商（如 anyrouter、agentrouter 和 freeapi）：
 
 ```json
 [
@@ -179,13 +179,21 @@
       "session": "xyz789session"
     },
     "api_user": "user456"
+  },
+  {
+    "name": "FreeAPI 账号",
+    "provider": "freeapi",
+    "cookies": {
+      "session": "freeapi789session"
+    },
+    "api_user": "user789"
   }
 ]
 ```
 
 ## 自定义 Provider 配置（可选）
 
-默认情况下，`anyrouter`、`agentrouter` 已内置配置，无需额外设置。如果你需要使用其他服务商，可以通过环境变量 `PROVIDERS` 配置：
+默认情况下，`anyrouter`、`agentrouter`、`freeapi` 已内置配置，无需额外设置。如果你需要使用其他服务商，可以通过环境变量 `PROVIDERS` 配置：
 
 ### 基础配置（仅域名）
 
@@ -222,7 +230,7 @@
 - 不设置或设置为 `null`：直接使用用户提供的 cookies 进行请求（适合无 WAF 保护的网站）
 - 设置为 `"waf_cookies"`：使用 Playwright 打开浏览器获取 WAF cookies 后再进行请求（适合有 WAF 保护的网站）
 
-> 注：`anyrouter` 和 `agentrouter` 已内置默认配置，无需在 `PROVIDERS` 中配置
+> 注：`anyrouter`、`agentrouter` 和 `freeapi` 已内置默认配置，无需在 `PROVIDERS` 中配置
 
 ### 在 GitHub Actions 中配置
 
@@ -261,11 +269,14 @@
 **内置配置说明**：
 
 - `anyrouter`：
-  - `bypass_method: "waf_cookies"`（需要先获取 WAF cookies，然后执行签到）
-  - `sign_in_path: "/api/user/sign_in"`
+  - `bypass_method: "waf_cookies"`（需要 `acw_tc`、`cdn_sec_tc`、`acw_sc__v2` 三个 WAF cookies）
+  - `sign_in_path: "/api/user/sign_in"`（有显式签到接口）
 - `agentrouter`：
-  - `bypass_method: null`（直接使用用户 cookies 执行签到）
-  - `sign_in_path: "/api/user/sign_in"`
+  - `bypass_method: "waf_cookies"`（需要 `acw_tc`、`cdn_sec_tc`、`acw_sc__v2` 三个 WAF cookies）
+  - `sign_in_path: null`（无显式签到接口，查询用户信息时平台自动完成签到）
+- `freeapi`（freeapi.dgbmc.top）：
+  - `bypass_method: null`（无 WAF，直接使用用户 cookies 执行签到）
+  - `sign_in_path: "/api/user/sign_in"`（标准 NewAPI 签到接口）
 
 **重要提示**：
 

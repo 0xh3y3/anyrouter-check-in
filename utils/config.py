@@ -90,11 +90,19 @@ class AppConfig:
 				name='agentrouter',
 				domain='https://agentrouter.org',
 				login_path='/login',
-				sign_in_path=None,  # 无需签到接口，查询用户信息时自动完成签到
+				sign_in_path=None,  # 无显式签到接口，查询用户信息时平台自动完成签到
 				user_info_path='/api/user/self',
 				api_user_key='new-api-user',
 				bypass_method='waf_cookies',
-				waf_cookie_names=['acw_tc'],
+				waf_cookie_names=['acw_tc'],  # agentrouter.org 只设置 acw_tc
+			),
+			'freeapi': ProviderConfig(
+				name='freeapi',
+				domain='https://freeapi.dgbmc.top',
+				login_path='/login',
+				sign_in_path='/api/user/checkin',  # 该部署的实际签到路径（/api/user/sign_in 被 AI 代理拦截）
+				user_info_path='/api/user/self',
+				api_user_key='new-api-user',
 			),
 		}
 
