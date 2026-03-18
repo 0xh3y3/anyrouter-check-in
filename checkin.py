@@ -135,7 +135,11 @@ def get_user_info(client, headers, user_info_url: str):
 		response = client.get(user_info_url, headers=headers, timeout=30)
 
 		if response.status_code == 200:
-			data = response.json()
+			try:
+				data = response.json()
+			except Exception as e:
+				print(f'[DEBUG] user info JSON parse failed: {e} | status={response.status_code} | body={response.text[:200]!r}')
+				return {'success': False, 'error': f'Failed to get user info: {str(e)[:50]}...'}
 			if data.get('success'):
 				user_data = data.get('data', {})
 				quota = round(user_data.get('quota', 0) / 500000, 2)
@@ -146,6 +150,9 @@ def get_user_info(client, headers, user_info_url: str):
 					'used_quota': used_quota,
 					'display': f':money: Current balance: ${quota}, Used: ${used_quota}',
 				}
+			print(f'[DEBUG] user info success=false: {data.get("message", "")}')
+		else:
+			print(f'[DEBUG] user info HTTP {response.status_code} | body={response.text[:200]!r}')
 		return {'success': False, 'error': f'Failed to get user info: HTTP {response.status_code}'}
 	except Exception as e:
 		return {'success': False, 'error': f'Failed to get user info: {str(e)[:50]}...'}
