@@ -94,10 +94,20 @@ async def get_waf_cookies_with_playwright(account_name: str, login_url: str, req
 
 				await page.goto(login_url, wait_until='networkidle')
 
-				try:
-					await page.wait_for_function('document.readyState === "complete"', timeout=5000)
-				except Exception:
-					await page.wait_for_timeout(3000)
+				# acw_sc__v2 由浏览器执行 WAF JS 挑战后写入，需等待它出现再读取
+				if 'acw_sc__v2' in required_cookies:
+					try:
+						await page.wait_for_function(
+							"document.cookie.includes('acw_sc__v2')",
+							timeout=15000,
+						)
+					except Exception:
+						await page.wait_for_timeout(5000)
+				else:
+					try:
+						await page.wait_for_function('document.readyState === "complete"', timeout=5000)
+					except Exception:
+						await page.wait_for_timeout(3000)
 
 				cookies = await page.context.cookies()
 
