@@ -309,8 +309,12 @@ async def check_in_account(account: AccountConfig, account_index: int, app_confi
 			user_info_after = get_user_info(client, headers, user_info_url)
 			return success, user_info_before, user_info_after
 		else:
+			# 自动签到：查询用户信息本身就触发签到，若查询失败说明 session 无效
+			if not user_info_before or not user_info_before.get('success'):
+				print(f'[FAILED] {account_name}: Check-in failed - unable to get user info (session may be expired)')
+				return False, user_info_before, None
 			print(f'[INFO] {account_name}: Check-in completed automatically (triggered by user info request)')
-			# 自动签到的情况，再次获取用户信息
+			# 再次获取用户信息，用于计算签到收益
 			user_info_after = get_user_info(client, headers, user_info_url)
 			return True, user_info_before, user_info_after
 
