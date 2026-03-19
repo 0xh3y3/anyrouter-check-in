@@ -65,7 +65,7 @@ def parse_cookies(cookies_data):
 	return {}
 
 
-async def get_waf_cookies_with_playwright(account_name: str, login_url: str, required_cookies: list[str]):
+async def get_waf_cookies_with_playwright(account_name: str, login_url: str, required_cookies: list[str], fallback_url: str | None = None):
 	"""使用 Playwright 获取 WAF cookies（隐私模式）"""
 	print(f'[PROCESSING] {account_name}: Starting browser to get WAF cookies...')
 
@@ -93,21 +93,25 @@ async def get_waf_cookies_with_playwright(account_name: str, login_url: str, req
 				print(f'[PROCESSING] {account_name}: Access login page to get initial cookies...')
 
 				await page.goto(login_url, wait_until='networkidle')
+				try:
+					await page.wait_for_function('document.readyState === "complete"', timeout=5000)
+				except Exception:
+					await page.wait_for_timeout(3000)
 
-				# acw_sc__v2 由浏览器执行 WAF JS 挑战后写入，需等待它出现再读取
-				if 'acw_sc__v2' in required_cookies:
-					try:
-						await page.wait_for_function(
-							"document.cookie.includes('acw_sc__v2')",
-							timeout=15000,
-						)
-					except Exception:
-						await page.wait_for_timeout(5000)
-				else:
-					try:
-						await page.wait_for_function('document.readyState === "complete"', timeout=5000)
-					except Exception:
-						await page.wait_for_timeout(3000)
+				# 部分站点（如 agentrouter）的 WAF JS 挑战仅在 API 路径触发，登录页只给 acw_tc
+				# 此时需访问 fallback_url（API 端点）让浏览器执行挑战、写入 acw_sc__v2
+				if 'acw_sc__v2' in required_cookies and fallback_url:
+					cookies_after_login = {c.get('name') for c in await page.context.cookies()}
+					if 'acw_sc__v2' not in cookies_after_login:
+						print(f'[PROCESSING] {account_name}: acw_sc__v2 not on login page, accessing API endpoint to trigger WAF JS challenge...')
+						await page.goto(fallback_url, wait_until='networkidle')
+						try:
+							await page.wait_for_function(
+								"document.cookie.includes('acw_sc__v2')",
+								timeout=15000,
+							)
+						except Exception:
+							await page.wait_for_timeout(5000)
 
 				cookies = await page.context.cookies()
 
@@ -174,7 +178,8 @@ async def prepare_cookies(account_name: str, provider_config, user_cookies: dict
 
 	if provider_config.needs_waf_cookies():
 		login_url = f'{provider_config.domain}{provider_config.login_path}'
-		waf_cookies = await get_waf_cookies_with_playwright(account_name, login_url, provider_config.waf_cookie_names)
+		fallback_url = f'{provider_config.domain}{provider_config.user_info_path}' if 'acw_sc__v2' in (provider_config.waf_cookie_names or []) else None
+		waf_cookies = await get_waf_cookies_with_playwright(account_name, login_url, provider_config.waf_cookie_names, fallback_url)
 		if not waf_cookies:
 			print(f'[FAILED] {account_name}: Unable to get WAF cookies')
 			return None
